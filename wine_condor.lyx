@@ -1,0 +1,556 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 1.5cm
+\topmargin 1.5cm
+\rightmargin 1.5cm
+\bottommargin 1.5cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Rockin' Windoze in the Free (Linux) World
+\end_layout
+
+\begin_layout Author
+Mike Fienen, USGS WiWSC/CIDA-EMU
+\end_layout
+
+\begin_layout Subsection*
+Preliminaries
+\end_layout
+
+\begin_layout Standard
+Condor is developed in Linux and made available in Windows with some limitations
+ on functionality (specifically the ability to SSH to a running job).
+ Also, Windows licensing can be prohibitively expensive.
+ But....beoPEST is the opposite---developed on Windows with some features lagging
+ a bit behind for Linux.
+ The user base for many of our modeling projects is working in Windows and
+ sometimes includes custom or proprietary codes that would be difficult
+ or tedious to compile and optimize for Linux.
+ The bottom line is, it may be advantageous to run Condor on Linux platforms
+ but run the underlying models and beoPEST in Windows.
+\end_layout
+
+\begin_layout Standard
+WINE is an open-source project that makes it possible to accomplish the
+ goal stated above of running Windows binaries on a Linux platform.
+ WINE stands for Wine is Not an Emulator (http://www.winehq.org).
+ In this short note, I outline the steps required to port a Windows project
+ to WINE on Linux using Condor.
+\end_layout
+
+\begin_layout Subsection*
+Installation
+\end_layout
+
+\begin_layout Standard
+In the CIDA-EMU Linux pool, installation of WINE is very straightforward.
+ One must log in as root and run the command 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{yum install wine}
+\end_layout
+
+\end_inset
+
+ accept a couple queries about download size, and the installation should
+ work.
+ 
+\end_layout
+
+\begin_layout Standard
+A key dependency on Scientific Linux 6.x (which we are running---it's a RedHat
+ clone) is EPEL (Extra Packages for Enterprise Linux).
+ This is already in place on the CIDA-EMU machines, but if it's missing
+ on a machine, it can be installed by typing the following as root:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{rpm -i http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-5.no
+arch.rpm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Once this is successfully done, you can run the yum install command above
+ and all is well!
+\end_layout
+
+\begin_layout Subsection*
+Running Wine in Condor
+\end_layout
+
+\begin_layout Standard
+A key issue with running WINE in Condor is related to permissions--by default,
+ WINE needs to write to a folder it creates at the user directory.
+ Since we install as root, this location is 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{/}
+\end_layout
+
+\end_inset
+
+.
+ For security reasons, one cannot run Condor as root, nor can Condor write
+ to 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{/}
+\end_layout
+
+\end_inset
+
+ so an alternate location for WINE to write must be established.
+ Luckily, the environment variable 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{WINEPREFIX}
+\end_layout
+
+\end_inset
+
+ specifies this writing location.
+ Condor also creates a scratch directory for each run, so no toes are stepped
+ on as multiple runs waltz away on a single machine.
+\end_layout
+
+\begin_layout Standard
+To force WINE to use this scratch directory, the following line should be
+ in the shell script that Condor calls on each machine:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{export WINEPREFIX
+\backslash
+=
+\backslash
+$
+\backslash
+_CONDOR
+\backslash
+_SCRATCH
+\backslash
+_DIR}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+After that step, all other Windows applications are run as they normally
+ would be on the command line or in a batch file, except they must be preceded
+ by the word 
+\begin_inset Quotes eld
+\end_inset
+
+wine
+\begin_inset Quotes erd
+\end_inset
+
+.
+ An example is:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{wine beopest64.exe my
+\backslash
+_sweet
+\backslash
+_project.pst /h /p1 host:port}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In this paradigm, mixing Linux and Windows commands within a single shell
+ script is easily accomplished.
+ Following is an example of a shell script called by Condor to start a slave
+ in beoPEST:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{
+\backslash
+#!/bin/sh}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{host
+\backslash
+=
+\backslash
+$1}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{port
+\backslash
+=
+\backslash
+$2}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{export WINEPREFIX
+\backslash
+=
+\backslash
+$
+\backslash
+_CONDOR
+\backslash
+_SCRATCH
+\backslash
+_DIR}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{wine unzip Python27.zip}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{tar xzf data.tar}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{cd data}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{wine beopest64 my
+\backslash
+_sweet
+\backslash
+_model.pst /h /p1 
+\backslash
+$host:
+\backslash
+$port}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+Parting Thoughts/Notes
+\end_layout
+
+\begin_layout Standard
+By running Condor in Linux with Windows floating in underneath, a couple
+ very important features are open.
+ One is tailing files.
+ By opening a terminal window, one can type 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{tail -f worker
+\backslash
+_121
+\backslash
+_0.out}
+\end_layout
+
+\end_inset
+
+ to dynamically follow the screen output of the slave running as run 121
+ (according to Condor).
+\end_layout
+
+\begin_layout Standard
+Another feature is the command 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{condor
+\backslash
+_ssh
+\backslash
+_to
+\backslash
+_job <job
+\backslash
+#>}
+\end_layout
+
+\end_inset
+
+, which floats in on the Condor user allowing one to tail, secure copy (
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{scp}
+\end_layout
+
+\end_inset
+
+) or otherwise interact with a running model.
+\end_layout
+
+\begin_layout Standard
+Batch files that are called by beoPEST cascade their dependencies, meaning
+ that the batch file needs not be altered (in other words, the word 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{wine}
+\end_layout
+
+\end_inset
+
+ needs not be prepended to program calls in the batch file.
+ An exception to this is anything that requires changing the system path
+ (on the Windows side).
+ While WINE supports a registry editing GUI, I have not yet figured out
+ how to programmatically change the PATH variable, for example.
+ An example of this issue is if Python is shipped along with the model files
+ (as indicated above).
+ The python directory gets unzipped and on native windows implementations,
+ the path is updated with the location of this sandboxed python installation.
+ This is not easily done in WINE, but the only implication is that the batch
+ file where python is called must be updated.
+ In the example above, the line in the batch file 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{python myscript.py}
+\end_layout
+
+\end_inset
+
+ must simply be changed to 
+\family typewriter
+..
+\backslash
+python27
+\backslash
+python myscript.py
+\family default
+.
+ In other words, the path must be fully qualified.
+ 
+\end_layout
+
+\end_body
+\end_document
